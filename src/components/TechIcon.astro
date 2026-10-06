@@ -1,0 +1,24 @@
+---
+import type { Tech } from '../data/stack';
+import { resolveIcon } from '../lib/icons';
+
+interface Props { tech: Tech }
+const { tech } = Astro.props;
+const icon = resolveIcon(tech.icons);
+const initials = tech.name.replace(/[^A-Za-z0-9 ]/g, '').split(' ').filter(Boolean).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+---
+<li class="tech">
+  {icon ? (
+    <span class="logo" style={icon.mono ? `color:${tech.color}` : undefined} set:html={icon.svg} />
+  ) : (
+    <span class="logo mono-tile" style={`background:${tech.color}`} aria-hidden="true">{initials}</span>
+  )}
+  <span class="name">{tech.name}</span>
+</li>
+<style>
+  .tech { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 1rem 0.6rem 0.6rem; background: #fff; border-radius: 14px; box-shadow: 0 0 0 1px rgba(22,24,29,.08); min-height: 56px; }
+  .logo { flex: none; width: 36px; height: 36px; display: grid; place-items: center; }
+  .logo :global(svg) { width: 30px; height: 30px; }
+  .mono-tile { border-radius: 10px; color: #fff; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.02em; }
+  .name { font-weight: 500; font-size: 0.97rem; line-height: 1.2; }
+</style>

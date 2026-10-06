@@ -1,0 +1,137 @@
+---
+import { profile } from '../data/profile';
+import { capabilities } from '../data/services';
+---
+<section id="contact" class="section contact" aria-labelledby="contact-title">
+  <div class="container contact-grid">
+    <div class="intro">
+      <h2 id="contact-title" class="section-title">Let’s build something that runs itself</h2>
+      <p class="lede">Hiring for an AI or automation role, or have a process you want automated? Send a message and I’ll reply within a day.</p>
+      <ul class="direct">
+        <li><a href={`mailto:${profile.email}`}>{profile.email}</a></li>
+        <li><a href={`https://wa.me/${profile.whatsapp.number}?text=${encodeURIComponent(profile.whatsapp.message)}`} target="_blank" rel="noopener">Chat on WhatsApp</a></li>
+        <li><a href={profile.linkedin} target="_blank" rel="me noopener">LinkedIn</a></li>
+        <li><a href={profile.github} target="_blank" rel="me noopener">GitHub</a></li>
+        <li>{profile.location}</li>
+      </ul>
+      <p class="powered">This form runs on my own n8n workflow.</p>
+    </div>
+
+    <form class="form" data-contact-form novalidate>
+      <div class="row">
+        <div class="field">
+          <label for="c-name">Name</label>
+          <input id="c-name" name="name" type="text" required maxlength="100" autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="c-email">Email</label>
+          <input id="c-email" name="email" type="email" required maxlength="150" autocomplete="email" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="c-type">What’s it about?</label>
+        <select id="c-type" name="type">
+          {capabilities.map((c) => <option>{c.title}</option>)}
+          <option>Hiring / job opportunity</option>
+          <option>Something else</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="c-message">Message</label>
+        <textarea id="c-message" name="message" rows="5" required minlength="10" maxlength="3000"></textarea>
+      </div>
+      <!-- Spam trap: hidden from people, bots fill it in -->
+      <div class="trap" aria-hidden="true">
+        <label for="c-website">Website</label>
+        <input id="c-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+      </div>
+      <button class="btn btn-ink send" type="submit">Send message</button>
+      <p class="status" role="status" aria-live="polite" data-status></p>
+    </form>
+  </div>
+</section>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-contact-form]');
+  const status = form?.querySelector<HTMLElement>('[data-status]');
+  const button = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+  const startedAt = Date.now();
+  const WEBHOOK = import.meta.env.PUBLIC_CONTACT_WEBHOOK_URL as string | undefined;
+  const WEB3FORMS = import.meta.env.PUBLIC_WEB3FORMS_KEY as string | undefined;
+  const EMAIL = 'thameemmulansaris@gmail.com';
+
+  const setStatus = (text: string, kind: 'ok' | 'error' | '') => {
+    if (!status) return;
+    status.textContent = text;
+    status.dataset.kind = kind;
+  };
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    const data = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+    const payload = {
+      name: data.name.trim(),
+      email: data.email.trim(),
+      type: data.type,
+      message: data.message.trim(),
+      website: data.website ?? '',
+      elapsedMs: Date.now() - startedAt,
+      page: location.href,
+      submittedAt: new Date().toISOString(),
+    };
+
+    if (button) { button.disabled = true; button.textContent = 'Sending…'; }
+    setStatus('', '');
+    try {
+      let res: Response;
+      if (WEBHOOK) {
+        res = await fetch(WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      } else if (WEB3FORMS) {
+        res = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ access_key: WEB3FORMS, subject: `New ${payload.type} enquiry from ${payload.name}`, botcheck: payload.website, ...payload }),
+        });
+      } else {
+        throw new Error('not-configured');
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      form.reset();
+      setStatus('Message sent. I’ll get back to you within a day.', 'ok');
+    } catch (err) {
+      console.error('[contact]', err);
+      setStatus(`Your message didn’t send. Check your connection and try again, or email ${EMAIL}.`, 'error');
+    } finally {
+      if (button) { button.disabled = false; button.textContent = 'Send message'; }
+    }
+  });
+</script>
+
+<style>
+  .contact { background: var(--blue); color: #fff; }
+  .contact-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: clamp(2.5rem, 6vw, 6rem); align-items: start; }
+  .lede { margin-top: 1.25rem; font-size: var(--step-1); line-height: 1.55; max-width: 44ch; }
+  .direct { list-style: none; padding: 0; margin-top: 2rem; display: grid; gap: 0.5rem; font-size: 1.05rem; }
+  .direct a { color: #fff; font-weight: 600; }
+  .direct a:hover { color: var(--orange-tint); }
+  .powered { margin-top: 2rem; font-size: var(--step--1); opacity: 0.85; }
+  .form { background: #fff; color: var(--ink); border-radius: var(--radius-l); padding: clamp(1.25rem, 3vw, 2.25rem); display: grid; gap: 1.1rem; box-shadow: 0 40px 80px -40px rgba(10, 20, 90, 0.6); }
+  .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.1rem; }
+  @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+  .field { display: grid; gap: 0.4rem; }
+  label { font-weight: 600; font-size: 0.95rem; }
+  input, select, textarea { width: 100%; min-height: 50px; border: 1.5px solid var(--line); border-radius: 12px; padding: 0.7rem 0.9rem; background: #fff; transition: border-color .2s; }
+  textarea { resize: vertical; min-height: 140px; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-tint); }
+  .trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .send { justify-self: start; }
+  .send:disabled { opacity: 0.6; cursor: progress; }
+  .status { min-height: 1.5em; font-weight: 500; }
+  .status[data-kind='ok'] { color: #0c7a43; }
+  .status[data-kind='error'] { color: var(--orange-ink); }
+  @media (max-width: 860px) { .contact-grid { grid-template-columns: 1fr; } }
+</style>

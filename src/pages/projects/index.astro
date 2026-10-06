@@ -1,0 +1,42 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProjectGrid from '../../components/ProjectGrid.astro';
+import { getAllProjects } from '../../lib/projects';
+import { profile } from '../../data/profile';
+
+const projects = await getAllProjects();
+const site = Astro.site!;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: `Projects by ${profile.name}`,
+  url: new URL('/projects', site).href,
+  hasPart: projects.map((p) => ({
+    '@type': 'CreativeWork',
+    name: p.data.title,
+    url: new URL(`/projects/${p.id}`, site).href,
+  })),
+};
+---
+<BaseLayout
+  title="All projects"
+  description={`All ${projects.length} AI agent, voice AI, RAG and automation projects built by ${profile.name}, ${profile.role} in Chennai.`}
+  jsonLd={jsonLd}
+>
+  <section class="section all" aria-labelledby="all-title">
+    <div class="container">
+      <a class="back" href="/#work">Back to home</a>
+      <h1 id="all-title" class="section-title">All projects</h1>
+      <p class="section-lede">Everything I've built: AI agents, voice AI, RAG systems and automation. Filter by type, or open any project for screenshots and the full story.</p>
+      <div class="spacer"></div>
+      <ProjectGrid projects={projects} layout="uniform" />
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .all { background: var(--mist); padding-top: clamp(2rem, 5vw, 3.5rem); }
+  .back { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 0.75rem; font-weight: 600; color: var(--ink); }
+  .spacer { height: clamp(1.75rem, 4vw, 2.75rem); }
+</style>

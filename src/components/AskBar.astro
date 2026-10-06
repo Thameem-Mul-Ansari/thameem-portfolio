@@ -1,0 +1,45 @@
+---
+import { profile } from '../data/profile';
+---
+<section class="ask section" aria-labelledby="ask-title">
+  <div class="container ask-inner">
+    <h2 id="ask-title" class="section-title">Ask my AI about my work</h2>
+    <p class="section-lede">It knows my projects, stack, certifications and experience, and answers in seconds.</p>
+    <form class="ask-form" data-ask-form>
+      <label for="ask-input" class="sr-only">Your question</label>
+      <input id="ask-input" name="q" type="text" maxlength="500" autocomplete="off" placeholder="What has Thameem built with LangGraph?" />
+      <button class="btn btn-blue" type="submit">Ask</button>
+    </form>
+    <ul class="ask-chips">
+      {profile.askSuggestions.map((q) => (
+        <li><button type="button" data-open-chat data-question={q}>{q}</button></li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-ask-form]');
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = form.querySelector('input');
+    const q = input?.value.trim();
+    if (!q) return input?.focus();
+    if ((window as any).__chatReady) window.dispatchEvent(new CustomEvent('chat:open', { detail: { q } }));
+    else (window as any).__pendingChat = q;
+    if (input) input.value = '';
+  });
+</script>
+
+<style>
+  .ask { background: var(--orange-tint); }
+  .ask-inner { display: grid; justify-items: center; text-align: center; }
+  .ask-inner .section-lede { margin-inline: auto; }
+  .ask-form { display: flex; gap: 0.5rem; width: min(100%, 760px); margin-top: 2.25rem; padding: 0.45rem; background: #fff; border-radius: 999px; box-shadow: 0 0 0 1.5px var(--ink); }
+  .ask-form:focus-within { box-shadow: 0 0 0 3px var(--blue); }
+  .ask-form input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 0 1.1rem; font-size: 1.1rem; min-height: 52px; }
+  .ask-form input:focus { outline: none; }
+  .ask-chips { list-style: none; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-top: 1.25rem; max-width: 820px; }
+  .ask-chips button { min-height: 44px; padding: 0.5rem 1rem; border-radius: 999px; border: 1.5px solid rgba(22,24,29,.18); background: transparent; cursor: pointer; font-size: 0.95rem; }
+  .ask-chips button:hover { background: #fff; border-color: var(--ink); }
+</style>

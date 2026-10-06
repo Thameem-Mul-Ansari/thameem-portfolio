@@ -1,0 +1,34 @@
+---
+// Home page "Selected work": up to 6 projects (see getHomeProjects in src/lib/projects.ts),
+// plus a link to /projects when there are more.
+import ProjectGrid from './ProjectGrid.astro';
+import { getAllProjects, getHomeProjects } from '../lib/projects';
+
+const all = await getAllProjects();
+const shown = await getHomeProjects();
+const more = all.length - shown.length;
+---
+<section id="work" class="section work" aria-labelledby="work-title">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <h2 id="work-title" class="section-title">Selected work</h2>
+        <p class="section-lede">Production systems for enterprise clients in the UAE and India. Open any project for screenshots and the full story.</p>
+      </div>
+      {more > 0 && <a class="btn btn-line" href="/projects">View all {all.length} projects</a>}
+    </div>
+
+    <ProjectGrid projects={shown} layout="feature" />
+
+    {more > 0 && (
+      <div class="more">
+        <a class="btn btn-ink" href="/projects">See {more} more {more === 1 ? 'project' : 'projects'}</a>
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .work { background: var(--mist); }
+  .more { display: flex; justify-content: center; margin-top: clamp(2rem, 4vw, 3rem); }
+</style>

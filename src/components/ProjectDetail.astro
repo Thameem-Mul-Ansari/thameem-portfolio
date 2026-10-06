@@ -1,0 +1,57 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { render } from 'astro:content';
+import Carousel from './Carousel.astro';
+
+interface Props {
+  project: CollectionEntry<'projects'>;
+  as?: 'h1' | 'h2';
+  eager?: boolean;
+  showPageLink?: boolean;
+}
+const { project, as: Heading = 'h2', eager = false, showPageLink = false } = Astro.props;
+const d = project.data;
+const { Content } = await render(project);
+const images = d.gallery.length ? d.gallery : [{ src: d.cover, alt: d.coverAlt }];
+---
+<article class="pd" data-accent={d.accent}>
+  <div class="pd-media">
+    <Carousel images={images} label={d.title} accent={d.accent} eager={eager} />
+  </div>
+  <div class="pd-text">
+    <p class="pd-kicker">{d.category}</p>
+    <Heading class="pd-title" data-title>{d.title}</Heading>
+    <p class="pd-summary">{d.summary}</p>
+
+    {d.metrics.length > 0 && (
+      <div class="pd-metrics">
+        {d.metrics.map((m) => <div><strong>{m.value}</strong><span>{m.label}</span></div>)}
+      </div>
+    )}
+
+    <div class="pd-body"><Content /></div>
+
+    <dl class="pd-meta">
+      <dt>Client</dt><dd>{d.client}</dd>
+      <dt>Year</dt><dd>{d.year}</dd>
+      {d.role && <><dt>Role</dt><dd>{d.role}</dd></>}
+    </dl>
+
+    <ul class="pd-stack" aria-label="Tools used">
+      {d.stack.map((s) => <li class="tag">{s}</li>)}
+    </ul>
+
+    {(d.links.live || d.links.github || d.links.video || showPageLink) && (
+      <div class="pd-links">
+        {d.links.live && <a class="btn btn-blue" href={d.links.live} target="_blank" rel="noopener">View live</a>}
+        {d.links.video && <a class="btn btn-line" href={d.links.video} target="_blank" rel="noopener">Watch demo</a>}
+        {d.links.github && <a class="btn btn-line" href={d.links.github} target="_blank" rel="noopener">Source code</a>}
+        {showPageLink && <a class="btn btn-line" href={`/projects/${project.id}`}>Open full page</a>}
+      </div>
+    )}
+  </div>
+</article>
+
+<style>
+  .pd-stack { list-style: none; padding: 0; }
+</style>

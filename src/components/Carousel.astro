@@ -1,0 +1,38 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+  images: { src: ImageMetadata; alt: string; caption?: string }[];
+  label: string;
+  accent?: 'blue' | 'orange';
+  eager?: boolean;
+}
+const { images, label, accent = 'blue', eager = false } = Astro.props;
+const many = images.length > 1;
+---
+<div class="carousel" data-carousel data-accent={accent} role="region" aria-roledescription="carousel" aria-label={label}>
+  <div class="carousel-track" data-track tabindex="0" aria-label={`${label} images. Use arrow keys to browse.`}>
+    {images.map((img, i) => (
+      <figure class="slide" role="group" aria-roledescription="slide" aria-label={`${i + 1} of ${images.length}`}>
+        <div class="slide-frame">
+          <Image src={img.src} alt={img.alt} widths={[480, 800, 1200, 1600]} sizes="(min-width: 1000px) 720px, 100vw" loading={eager && i === 0 ? 'eager' : 'lazy'} />
+        </div>
+        {img.caption && <figcaption>{img.caption}</figcaption>}
+      </figure>
+    ))}
+  </div>
+  {many && (
+    <div class="carousel-controls">
+      <button class="carousel-btn" type="button" data-prev aria-label="Previous image">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+      </button>
+      <div class="carousel-dots">
+        {images.map((_, i) => <button type="button" data-dot={i} aria-label={`Show image ${i + 1}`} aria-current={i === 0 ? 'true' : 'false'} />)}
+      </div>
+      <button class="carousel-btn" type="button" data-next aria-label="Next image">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+      </button>
+    </div>
+  )}
+</div>

@@ -1,0 +1,149 @@
+---
+import IdCard from './IdCard.astro';
+import Marquee from './Marquee.astro';
+import headshot from '../assets/images/headshot.jpg';
+import { profile } from '../data/profile';
+import { resolveIcon } from '../lib/icons';
+
+const socials = [
+  { label: 'LinkedIn', href: profile.linkedin, icon: resolveIcon(['logos:linkedin-icon', 'simple-icons:linkedin']), external: true },
+  { label: 'GitHub', href: profile.github, icon: resolveIcon(['logos:github-icon', 'simple-icons:github']), external: true },
+  { label: 'Gmail', href: `mailto:${profile.email}`, icon: resolveIcon(['logos:google-gmail', 'simple-icons:gmail']), external: false },
+  { label: 'WhatsApp', href: `https://wa.me/${profile.whatsapp.number}?text=${encodeURIComponent(profile.whatsapp.message)}`, icon: resolveIcon(['logos:whatsapp-icon', 'simple-icons:whatsapp']), external: true },
+];
+---
+<!-- Hero = ID card (left) + intro (right) + crossed tapes. On desktop it fits exactly one screen. -->
+<section id="home" class="hero" data-hero aria-labelledby="hero-title">
+  <div class="container hero-main">
+    <div class="card-col">
+      <IdCard photo={headshot} />
+    </div>
+
+    <div class="intro">
+      <h1 id="hero-title" class="name">
+        <span data-type="80">{profile.firstName}</span>
+        <span data-type="80">{profile.lastName}</span>
+      </h1>
+      <p class="role" data-type="32">{profile.role}, {profile.city}</p>
+      <p class="lede" data-type="11">{profile.heroIntro}</p>
+
+      <ul class="links" aria-label="Contact and profiles" data-reveal>
+        {socials.map((s, i) => (
+          <li style={`--i:${i}`}>
+            <a class="social" href={s.href} target={s.external ? '_blank' : undefined} rel={s.external ? (s.label === 'WhatsApp' ? 'noopener' : 'me noopener') : undefined}>
+              {s.icon ? <span class="ico" set:html={s.icon.svg} /> : null}
+              <span>{s.label}</span>
+            </a>
+          </li>
+        ))}
+        <li style={`--i:${socials.length}`}><a class="btn btn-blue" href="#contact">Contact me</a></li>
+      </ul>
+    </div>
+    <script is:inline>
+      // Hide the intro text until the typewriter is ready, so it doesn't flash in full first.
+      (function () {
+        var intro = document.currentScript && document.currentScript.parentElement.querySelector('.intro');
+        if (!intro || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        intro.classList.add('tw-wait');
+        setTimeout(function () { intro.classList.remove('tw-wait'); }, 3000); // safety net
+      })();
+    </script>
+  </div>
+
+  <Marquee />
+</section>
+
+<script>
+  // Typewriter: once the ID card lands, the name, role and intro type themselves out,
+  // then the buttons pop in. The full text is in the HTML from the start, so Google and
+  // screen readers always get it, and nothing jumps around while it types.
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const targets = Array.from(document.querySelectorAll<HTMLElement>('[data-hero] [data-type]'));
+  const links = document.querySelector<HTMLElement>('[data-hero] [data-reveal]');
+  const PAUSE = 180; // ms between lines
+
+  // Run only once per element, even if this script is executed again (e.g. dev hot reload).
+  const fresh = targets.filter((el) => !el.classList.contains('tw'));
+
+  if (!reduceMotion && fresh.length) {
+    const plans = fresh.map((el) => {
+      el.dataset.full ??= (el.textContent ?? '').trim();
+      const text = el.dataset.full;
+      const sr = Object.assign(document.createElement('span'), { className: 'sr-only', textContent: text });
+      const ghost = Object.assign(document.createElement('span'), { className: 'tw-ghost', textContent: text });
+      const live = Object.assign(document.createElement('span'), { className: 'tw-live' });
+      ghost.setAttribute('aria-hidden', 'true');
+      live.setAttribute('aria-hidden', 'true');
+      const typed = document.createTextNode('');
+      live.append(typed);
+      el.replaceChildren(sr, ghost, live);
+      el.classList.add('tw');
+      return { text, live, typed, speed: Number(el.dataset.type) || 40 };
+    });
+    links?.classList.add('tw-hide');
+    document.querySelector('[data-hero] .intro')?.classList.remove('tw-wait');
+
+    const caret = Object.assign(document.createElement('span'), { className: 'tw-caret' });
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+    let started = false;
+    const start = async () => {
+      if (started) return;
+      started = true;
+      for (const p of plans) {
+        p.live.append(caret);
+        for (let i = 1; i <= p.text.length; i++) {
+          p.typed.data = p.text.slice(0, i);
+          await wait(p.text[i - 1] === ' ' ? p.speed * 0.5 : p.speed);
+        }
+        await wait(PAUSE);
+      }
+      links?.classList.add('tw-show');
+      await wait(2600);
+      caret.remove();
+    };
+
+    window.addEventListener('idcard:landed', () => setTimeout(start, 250), { once: true });
+    setTimeout(start, 2500); // safety net if the card never reports landing
+  }
+</script>
+
+<style>
+  .hero { --nav-h: 72px; position: relative; display: grid; grid-template-rows: minmax(0, 1fr) auto; height: calc(100svh - var(--nav-h)); min-height: 600px; background: var(--blue-tint); overflow: hidden; }
+  .hero-main { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: clamp(2rem, 5vw, 5rem); min-height: 0; }
+
+  .card-col { --card-w: clamp(240px, min(26vw, 41vh), 390px); position: relative; z-index: 2; align-self: stretch; min-height: 0; }
+  .intro { position: relative; z-index: 1; }
+
+  .intro { align-self: center; padding-block: 2rem; }
+  .name { font-family: var(--serif); font-weight: 400; font-size: clamp(3rem, min(6.6vw, 12vh), 7.2rem); line-height: 0.88; letter-spacing: -0.02em; display: grid; }
+  .role { margin-top: clamp(1.1rem, 3vh, 1.75rem); font-weight: 600; font-size: clamp(1.05rem, 1.5vw, 1.3rem); }
+  .lede { margin-top: 0.5rem; max-width: 46ch; color: var(--ink-2); font-size: clamp(1rem, min(1.3vw, 2.3vh), 1.2rem); line-height: 1.5; }
+
+  .links { list-style: none; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: clamp(1.1rem, 3vh, 1.75rem); }
+  .social { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 42px; padding: 0.4rem 0.9rem 0.4rem 0.7rem; border-radius: 999px; background: #fff; color: var(--ink); font-weight: 600; font-size: clamp(0.85rem, 0.95vw, 0.95rem); white-space: nowrap; text-decoration: none; box-shadow: 0 0 0 1px rgba(22, 24, 29, 0.1); transition: box-shadow .2s; }
+  .social:hover { color: var(--ink); box-shadow: 0 0 0 2px var(--ink); }
+  .links :global(.btn) { min-height: 42px; padding: 0.4rem 1.05rem; font-size: clamp(0.85rem, 0.95vw, 0.95rem); white-space: nowrap; }
+  .ico { display: grid; place-items: center; width: 18px; height: 18px; }
+  .ico :global(svg) { width: 18px; height: 18px; }
+
+  /* Typewriter (elements created by the script, so they need :global) */
+  .intro:global(.tw-wait) [data-type], .intro:global(.tw-wait) .links { visibility: hidden; }
+  .intro :global(.tw) { position: relative; }
+  .intro :global(.tw-ghost) { visibility: hidden; }
+  .intro :global(.tw-live) { position: absolute; inset: 0; }
+  .intro :global(.tw-caret) { display: inline-block; width: 0.08em; min-width: 2px; height: 0.95em; margin-left: 0.06em; vertical-align: -0.1em; background: var(--blue); animation: caret 0.9s steps(1) infinite; }
+  @keyframes caret { 50% { opacity: 0; } }
+  .links:global(.tw-hide) li { opacity: 0; transform: translateY(12px); }
+  .links:global(.tw-show) li { opacity: 1; transform: none; transition: opacity .5s ease calc(var(--i) * 110ms), transform .5s cubic-bezier(.2,.8,.2,1) calc(var(--i) * 110ms); }
+
+  /* Phones and small tablets: card on top, then intro, then tapes. */
+  @media (max-width: 899px) {
+    .hero { height: auto; min-height: calc(100svh - var(--nav-h)); }
+    .hero-main { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .card-col { --card-w: min(72vw, 300px); height: calc(var(--card-w) * 1.5 + 150px); }
+    .intro { padding-block: 2.5rem 2rem; }
+    .name { font-size: clamp(2.8rem, 12vw, 4.2rem); }
+    .lede { font-size: 1rem; }
+  }
+</style>

@@ -1,0 +1,30 @@
+---
+import { stack } from '../data/stack';
+import TechIcon from './TechIcon.astro';
+---
+<section id="stack" class="section stack" aria-labelledby="stack-title">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <h2 id="stack-title" class="section-title">Tools I ship with</h2>
+        <p class="section-lede">From agent orchestration to the pipeline that deploys it.</p>
+      </div>
+    </div>
+    <div class="groups">
+      {stack.map((g) => (
+        <div class="group">
+          <h3>{g.title}</h3>
+          <ul>{g.items.map((t) => <TechIcon tech={t} />)}</ul>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+<style>
+  .stack { background: var(--blue-tint); }
+  .groups { display: grid; gap: 2.25rem; }
+  .group { display: grid; grid-template-columns: minmax(160px, 240px) 1fr; gap: 1rem 2rem; align-items: start; }
+  h3 { font-size: 1.05rem; font-weight: 600; padding-top: 1rem; }
+  ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.6rem; }
+  @media (max-width: 760px) { .group { grid-template-columns: 1fr; } h3 { padding-top: 0; } }
+</style>

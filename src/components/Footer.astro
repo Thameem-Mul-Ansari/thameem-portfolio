@@ -1,0 +1,109 @@
+---
+import { Image } from 'astro:assets';
+import { profile } from '../data/profile';
+import hackathon from '../assets/images/hackathon.jpg';
+const year = new Date().getFullYear();
+const explore = [
+  { href: '/#home', label: 'Home' },
+  { href: '/#work', label: 'Work' },
+  { href: '/#about', label: 'About' },
+  { href: '/#services', label: 'Services' },
+  { href: '/#industries', label: 'Industries' },
+  { href: '/#stack', label: 'Stack' },
+  { href: '/#certifications', label: 'Certifications' },
+  { href: '/#contact', label: 'Contact' },
+];
+const connect = [
+  { href: profile.linkedin, label: 'LinkedIn', external: true },
+  { href: profile.github, label: 'GitHub', external: true },
+  { href: `mailto:${profile.email}`, label: 'Email', external: false },
+  { href: `https://wa.me/${profile.whatsapp.number}?text=${encodeURIComponent(profile.whatsapp.message)}`, label: 'WhatsApp', external: true },
+  { href: '/resume.pdf', label: 'Resume (PDF)', external: false, download: true },
+];
+---
+<footer class="footer">
+  <div class="container">
+    <div class="top">
+      <figure class="quote">
+        <blockquote><p>{profile.footerQuote.text}</p></blockquote>
+        <figcaption>{profile.footerQuote.by}</figcaption>
+      </figure>
+
+      <figure class="shot">
+        <Image src={hackathon} alt="Thameem building at a hackathon" width={360} height={360} densities={[1, 2]} loading="lazy" />
+        <figcaption>Hackathon mode</figcaption>
+      </figure>
+    </div>
+
+    <div class="grid">
+      <div class="brand">
+        <a class="logo" href="/#home">
+          <img src="/favicon.svg" alt="" width="36" height="36" />
+          <span>{profile.siteName}</span>
+        </a>
+        <p>{profile.name}, {profile.role} in {profile.city}. Building AI agents, voice agents and automations for teams in the UAE and India.</p>
+        <p class="status"><span class="dot" aria-hidden="true"></span>Open to new roles and freelance projects</p>
+      </div>
+
+      <nav aria-label="Footer">
+        <h2>Explore</h2>
+        <ul>{explore.map((l) => <li><a href={l.href}>{l.label}</a></li>)}</ul>
+      </nav>
+
+      <div>
+        <h2>Connect</h2>
+        <ul>
+          {connect.map((l) => (
+            <li>
+              <a href={l.href} target={l.external ? '_blank' : undefined} rel={l.external ? (l.label === 'WhatsApp' ? 'noopener' : 'me noopener') : undefined} download={l.download ? true : undefined}>{l.label}</a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+
+    <div class="bottom">
+      <p>© {year} {profile.siteName}. Designed and built by {profile.name.replace(/\.$/, '')}.</p>
+      <p>Made with Astro, Groq and n8n. Hosted on Firebase.</p>
+      <a class="top" href="/#home">Back to top ↑</a>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer { background: var(--ink); color: #d9dce3; padding-block: clamp(4rem, 8vw, 6.5rem) 6.5rem; }
+  .top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: clamp(2rem, 5vw, 5rem); }
+  .quote { margin: 0; }
+  .shot { position: relative; margin: 0; width: clamp(200px, 22vw, 300px); transform: rotate(3deg); }
+  .shot :global(img) { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-l); border: 6px solid #fff; box-shadow: 0 30px 60px -25px rgba(0, 0, 0, 0.7); }
+  .shot figcaption { position: absolute; left: -0.75rem; bottom: 1.25rem; transform: rotate(-3deg); background: var(--orange); color: var(--ink); font-weight: 600; font-size: 0.9rem; padding: 0.4rem 0.85rem; border-radius: 999px; margin: 0; }
+  blockquote { margin: 0; }
+  blockquote p { max-width: 24ch; font-family: var(--serif); font-size: clamp(2.2rem, 4.6vw, 4rem); line-height: 1.05; color: #fff; }
+  blockquote p::before { content: '“'; color: var(--orange); }
+  blockquote p::after { content: '”'; color: var(--orange); }
+  figcaption { margin-top: 1rem; color: #a9aebb; font-size: 1rem; }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.7fr) minmax(0, 0.7fr); gap: 2.5rem clamp(2rem, 5vw, 5rem); margin-top: clamp(3rem, 6vw, 4.5rem); padding-top: clamp(2.5rem, 5vw, 3.5rem); border-top: 1px solid rgba(255, 255, 255, 0.14); }
+  .logo { display: inline-flex; align-items: center; gap: 0.65rem; color: #fff; text-decoration: none; font-family: var(--serif); font-size: 2rem; line-height: 1; }
+  .logo:hover { color: #fff; }
+  .brand p { margin-top: 1rem; max-width: 42ch; line-height: 1.6; color: #b9bdc8; }
+  .status { display: inline-flex; align-items: center; gap: 0.55rem; padding: 0.45rem 0.9rem; border-radius: 999px; background: rgba(255, 255, 255, 0.08); color: #fff !important; font-weight: 500; font-size: 0.92rem; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #1fc46b; box-shadow: 0 0 0 4px rgba(31, 196, 107, 0.2); }
+
+  h2 { font-family: var(--sans); font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 0.9rem; }
+  ul { list-style: none; padding: 0; display: grid; gap: 0.15rem; }
+  ul a { display: inline-flex; align-items: center; min-height: 36px; color: #c9ccd5; text-decoration: none; }
+  ul a:hover { color: #fff; text-decoration: underline; }
+
+  .bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 2rem; margin-top: clamp(2.5rem, 5vw, 3.5rem); padding-top: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.14); font-size: var(--step--1); color: #a9aebb; }
+  .top { color: #fff; font-weight: 600; text-decoration: none; }
+  .top:hover { color: var(--orange); }
+
+  @media (max-width: 760px) {
+    .top { grid-template-columns: 1fr; }
+    .shot { width: min(70vw, 260px); justify-self: center; }
+    .grid { grid-template-columns: 1fr 1fr; }
+    .brand { grid-column: 1 / -1; }
+    .bottom { flex-direction: column; align-items: flex-start; }
+  }
+</style>

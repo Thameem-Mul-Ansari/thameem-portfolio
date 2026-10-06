@@ -1,0 +1,19 @@
+---
+import { profile } from '../data/profile';
+---
+<section class="impact" aria-label="Results from client work">
+  <div class="container">
+    <ul>
+      {profile.impact.map((i) => (
+        <li><strong>{i.value}</strong><span>{i.label}</span></li>
+      ))}
+    </ul>
+  </div>
+</section>
+<style>
+  .impact { padding-block: clamp(3rem, 6vw, 4.5rem); border-bottom: 1px solid var(--line); }
+  ul { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 2rem clamp(1.5rem, 3vw, 3rem); }
+  strong { display: block; font-family: var(--serif); font-weight: 400; font-size: clamp(3.4rem, 6vw, 5rem); line-height: 0.9; color: var(--blue); }
+  li:nth-child(even) strong { color: var(--orange-ink); }
+  span { display: block; margin-top: 0.6rem; color: var(--ink-2); max-width: 26ch; line-height: 1.45; }
+</style>

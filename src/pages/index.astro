@@ -1,0 +1,62 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+import Projects from '../components/Projects.astro';
+import Services from '../components/Services.astro';
+import Stack from '../components/Stack.astro';
+import Certifications from '../components/Certifications.astro';
+import About from '../components/About.astro';
+import Contact from '../components/Contact.astro';
+import { getImage } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import professional from '../assets/images/professional.jpg';
+import { profile } from '../data/profile';
+import { stack } from '../data/stack';
+
+const site = Astro.site!;
+const photo = await getImage({ src: professional, width: 600, height: 600, format: 'jpg' });
+const certs = await getCollection('certifications');
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    '@id': new URL('/#person', site).href,
+    name: profile.name,
+    alternateName: ['Thameem Mul Ansari S', profile.siteName],
+    jobTitle: profile.role,
+    description: profile.metaDescription,
+    url: site.href,
+    image: new URL(photo.src, site).href,
+    email: `mailto:${profile.email}`,
+    address: { '@type': 'PostalAddress', addressLocality: 'Chennai', addressRegion: 'Tamil Nadu', addressCountry: 'IN' },
+    worksFor: { '@type': 'Organization', name: profile.current.companyFull },
+    alumniOf: { '@type': 'CollegeOrUniversity', name: 'Meenakshi Sundararajan Engineering College' },
+    sameAs: [profile.linkedin, profile.github],
+    knowsAbout: [...new Set(stack.flatMap((g) => g.items.map((t) => t.name)))],
+    hasCredential: certs.map((c) => ({
+      '@type': 'EducationalOccupationalCredential',
+      name: `${c.data.issuer} ${c.data.code}: ${c.data.name}`,
+      credentialCategory: 'certification',
+      recognizedBy: { '@type': 'Organization', name: c.data.issuer },
+    })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: profile.siteName,
+    alternateName: `${profile.name} portfolio`,
+    url: site.href,
+    author: { '@id': new URL('/#person', site).href },
+  },
+];
+---
+<BaseLayout type="profile" jsonLd={jsonLd}>
+  <Hero />
+  <Projects />
+  <About />
+  <Services />
+  <Stack />
+  <Certifications />
+  <Contact />
+</BaseLayout>

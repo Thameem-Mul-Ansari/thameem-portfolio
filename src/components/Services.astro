@@ -1,0 +1,133 @@
+---
+// Home page Services: a card grid (AI Enablement featured, since it's the core offer),
+// the call-to-action, and a quiet industries marquee. All text comes from src/data/services.ts.
+import { capabilities, alsoAvailable, industries } from '../data/services';
+import { profile } from '../data/profile';
+import ServiceCta from './ServiceCta.astro';
+
+// Simple line icons, matched to each service id in services.ts
+const icons: Record<string, string> = {
+  'ai-enablement': '<path d="M12 3.5l1.9 5 5 1.9-5 1.9-1.9 5-1.9-5-5-1.9 5-1.9z"/><path d="M19 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>',
+  'data-analytics': '<path d="M3.5 20.5h17"/><path d="M6.5 17V11"/><path d="M11.5 17V5.5"/><path d="M16.5 17v-8"/>',
+  'cloud-adoption': '<path d="M7.5 18.5h9.5a4 4 0 0 0 .6-7.95 5.5 5.5 0 0 0-10.6-1.2A4.6 4.6 0 0 0 7.5 18.5z"/>',
+  'application-development': '<path d="M8 8l-4.5 4 4.5 4"/><path d="M16 8l4.5 4-4.5 4"/><path d="M13.5 5l-3 14"/>',
+  training: '<path d="M2.5 9.5L12 5l9.5 4.5L12 14z"/><path d="M6.5 11.6v4.6c3.3 2.2 7.7 2.2 11 0v-4.6"/><path d="M21.5 9.5v5"/>',
+};
+const fallbackIcon = '<circle cx="12" cy="12" r="7"/>';
+const talk = (title: string) =>
+  `https://wa.me/${profile.whatsapp.number}?text=${encodeURIComponent(`Hi Thameem, I'd like to discuss ${title} for my business.`)}`;
+---
+<section id="services" class="section services" aria-labelledby="services-title">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <h2 id="services-title" class="section-title">Services</h2>
+        <p class="section-lede">AI, data and software that save your team time, cut costs and keep work moving, for businesses of every size.</p>
+      </div>
+    </div>
+
+    <ul class="cards">
+      {capabilities.map((c, i) => (
+        <li id={c.id} class:list={['card', i % 2 ? 'orange' : 'blue', { featured: i === 0 }]}>
+          <div class="card-top">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" set:html={icons[c.id] ?? fallbackIcon} />
+            </span>
+            <span class="num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+          </div>
+          <h3>{c.title}</h3>
+          <p class="summary">{c.summary}</p>
+          <ul class="items">{c.items.map((it) => <li>{it}</li>)}</ul>
+          {c.tags && <ul class="tags" aria-label="Courses">{c.tags.map((t) => <li>{t}</li>)}</ul>}
+          <a class="talk" href={talk(c.title)} target="_blank" rel="noopener" aria-label={`Talk about ${c.title} on WhatsApp`}>Talk about this</a>
+        </li>
+      ))}
+    </ul>
+
+    {alsoAvailable && <p class="also"><strong>Also available:</strong> {alsoAvailable}</p>}
+
+    <div class="cta-wrap"><ServiceCta /></div>
+
+    <div id="industries" class="industries" aria-label="Industries I've worked in">
+      <p class="ind-label">Industries I've worked in</p>
+      <div class="ind-window">
+        <div class="ind-track">
+          <ul>{industries.map((ind) => <li>{ind.name}</li>)}</ul>
+          <ul aria-hidden="true">{industries.map((ind) => <li>{ind.name}</li>)}</ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .services { background: var(--mist); }
+
+  /* Grid: AI Enablement spans two columns, the other four fill in around it */
+  .cards { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(1rem, 2vw, 1.5rem); }
+  .card { --accent: var(--blue); --accent-ink: var(--blue-ink); --tint: var(--blue-tint); position: relative; display: flex; flex-direction: column; padding: clamp(1.5rem, 2.5vw, 2rem); border-radius: var(--radius-l); background: #fff; border: 1px solid rgba(22, 24, 29, 0.08); box-shadow: 0 1px 2px rgba(22, 24, 29, 0.04); transition: transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s, border-color .3s; }
+  .card.orange { --accent: var(--orange); --accent-ink: var(--orange-ink); --tint: var(--orange-tint); }
+  .card:hover { transform: translateY(-4px); border-color: var(--accent); box-shadow: 0 30px 60px -35px rgba(22, 24, 29, 0.45); }
+
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; }
+  .icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 14px; background: var(--tint); color: var(--accent-ink); transition: background-color .3s, color .3s; }
+  .icon svg { width: 26px; height: 26px; }
+  .card:hover .icon { background: var(--accent); color: #fff; }
+  .num { font-family: var(--serif); font-size: 3.4rem; line-height: 0.8; color: rgba(22, 24, 29, 0.09); }
+
+  h3 { font-family: var(--serif); font-weight: 400; font-size: clamp(1.8rem, 2.4vw, 2.2rem); line-height: 1.05; margin-top: 1.25rem; }
+  .summary { margin-top: 0.7rem; color: var(--ink-2); line-height: 1.55; }
+
+  .items { list-style: none; padding: 0; margin-top: 1.25rem; display: grid; gap: 0.6rem; }
+  .items li { position: relative; padding-left: 1.6rem; line-height: 1.45; font-size: 0.97rem; }
+  .items li::before { content: ''; position: absolute; left: 0.2rem; top: 0.25em; width: 0.4rem; height: 0.75rem; border-right: 2.5px solid var(--accent); border-bottom: 2.5px solid var(--accent); transform: rotate(45deg); }
+
+  .tags { list-style: none; padding: 0; margin-top: 1.1rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .tags li { background: var(--tint); color: var(--ink); border-radius: 999px; padding: 0.3rem 0.7rem; font-size: 0.85rem; font-weight: 600; }
+
+  .talk { margin-top: auto; padding-top: 1.5rem; align-self: flex-start; white-space: nowrap; font-weight: 600; font-size: 0.95rem; color: var(--accent-ink); text-decoration: none; }
+  .talk::after { content: ''; display: inline-block; width: 0.45rem; height: 0.45rem; margin-left: 0.5rem; border-top: 2px solid currentColor; border-right: 2px solid currentColor; transform: translateY(-0.1em) rotate(45deg); transition: transform .2s; }
+  .talk:hover { text-decoration: underline; }
+  .talk:hover::after { transform: translate(3px, -0.1em) rotate(45deg); }
+
+  /* Featured: the core offer, dark and wide */
+  .featured { grid-column: span 2; background: var(--ink); color: #fff; border-color: var(--ink); --accent: var(--orange); --accent-ink: #ffb894; }
+  .featured .icon { background: rgba(255, 255, 255, 0.1); color: #fff; }
+  .featured:hover .icon { background: var(--orange); color: var(--ink); }
+  .featured .num { color: rgba(255, 255, 255, 0.12); }
+  .featured h3 { font-size: clamp(2.2rem, 3.2vw, 3rem); }
+  .featured .summary { color: #c9ccd5; max-width: 56ch; font-size: var(--step-1); }
+  .featured .items { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2rem; }
+  .featured .items li { color: #e6e8ee; }
+
+  .also { margin-top: 1.25rem; color: var(--ink-2); }
+  .also strong { color: var(--ink); }
+  .cta-wrap { margin-top: clamp(1.5rem, 3vw, 2rem); }
+
+  /* Quiet industries marquee */
+  .industries { display: flex; align-items: center; gap: 1.5rem; margin-top: clamp(2rem, 4vw, 3rem); padding-top: 1.5rem; border-top: 1px solid var(--line); scroll-margin-top: 6rem; }
+  .ind-label { flex: none; font-weight: 600; font-size: 0.95rem; max-width: 9rem; line-height: 1.3; }
+  .ind-window { flex: 1; min-width: 0; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+  .ind-track { display: flex; width: max-content; animation: ind-scroll 45s linear infinite; }
+  .industries:hover .ind-track { animation-play-state: paused; }
+  .ind-track ul { list-style: none; display: flex; margin: 0; padding: 0; }
+  .ind-track li { display: flex; align-items: center; white-space: nowrap; font-family: var(--serif); font-size: clamp(1.4rem, 2.2vw, 1.9rem); color: #8a909c; }
+  .ind-track li::after { content: '✦'; margin-inline: 1.3rem; font-family: var(--sans); font-size: 0.55em; color: var(--orange); }
+  @keyframes ind-scroll { to { transform: translateX(-50%); } }
+
+  @media (max-width: 1050px) {
+    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 680px) {
+    .cards { grid-template-columns: minmax(0, 1fr); }
+    .featured { grid-column: auto; }
+    .featured .items { grid-template-columns: minmax(0, 1fr); }
+    .industries { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+    .ind-label { max-width: none; }
+    .ind-window { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ind-track { animation: none; }
+    .card, .card:hover { transform: none; }
+  }
+</style>

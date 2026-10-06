@@ -1,0 +1,37 @@
+---
+import { profile } from '../data/profile';
+const { experience } = profile;
+const steps = [...experience.steps].reverse(); // newest first
+---
+<section id="experience" class="section exp" aria-labelledby="exp-title">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <h2 id="exp-title" class="section-title">Experience</h2>
+        <p class="section-lede">Three roles in under two years at {experience.company}, {experience.place}.</p>
+      </div>
+    </div>
+    <ol class="timeline">
+      {steps.map((s, i) => (
+        <li class:list={{ now: i === 0 }}>
+          <div class="when">{s.period}</div>
+          <div class="what">
+            <h3>{s.title}</h3>
+            <ul>{s.points.map((p) => <li>{p}</li>)}</ul>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+<style>
+  .exp { background: var(--mist); }
+  .timeline { list-style: none; padding: 0; display: grid; }
+  .timeline > li { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 0.5rem 2.5rem; padding-block: 2rem; border-top: 1.5px solid var(--ink); position: relative; }
+  .timeline > li:last-child { border-bottom: 1.5px solid var(--ink); }
+  .when { color: var(--ink-2); font-weight: 500; padding-top: 0.45rem; }
+  .now .when::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--orange); margin-right: 0.55rem; box-shadow: 0 0 0 4px var(--orange-tint); }
+  h3 { font-family: var(--serif); font-weight: 400; font-size: clamp(1.9rem, 3vw, 2.6rem); line-height: 1.05; }
+  .what ul { margin-top: 0.85rem; padding-left: 1.1rem; display: grid; gap: 0.45rem; color: var(--ink-2); max-width: 70ch; }
+  @media (max-width: 700px) { .timeline > li { grid-template-columns: 1fr; } .when { padding-top: 0; } }
+</style>

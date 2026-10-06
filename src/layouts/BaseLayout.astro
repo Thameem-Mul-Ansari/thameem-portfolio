@@ -1,0 +1,42 @@
+---
+import '../styles/global.css';
+import Seo from '../components/Seo.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import ChatWidget from '../components/chat/ChatWidget.jsx';
+import { getImage } from 'astro:assets';
+import chatPhoto from '../assets/images/headshot-card.jpg'; // beige polo photo on the Ansari AI button
+import { profile } from '../data/profile';
+
+type Props = {
+  title?: string;
+  description?: string;
+  image?: string;
+  type?: 'website' | 'article' | 'profile';
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  noindex?: boolean;
+};
+const avatar = await getImage({ src: chatPhoto, width: 128, height: 128, format: 'webp' });
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <Seo {...Astro.props} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <Nav />
+    <main id="main"><slot /></main>
+    <Footer />
+    <ChatWidget
+      client:idle
+      avatar={avatar.src}
+      email={profile.email}
+      name={profile.assistantName}
+      suggestions={[...profile.askSuggestions]}
+    />
+  </body>
+</html>

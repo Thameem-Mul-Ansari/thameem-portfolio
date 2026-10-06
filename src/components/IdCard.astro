@@ -1,0 +1,233 @@
+---
+// The hanging ID card in the hero. Plain HTML card driven by a tiny physics
+// simulation: it's held up for a moment, let go, drops until the strap catches it,
+// swings a little and settles, then keeps moving in a light breeze.
+// On desktop you can grab it and throw it. When it lands it fires 'idcard:landed',
+// which starts the typewriter text in the hero.
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import { profile } from '../data/profile';
+
+interface Props { photo: ImageMetadata }
+const { photo } = Astro.props;
+const strapText = Array(8).fill(`${profile.siteName} ✦ `).join('');
+---
+<div class="rig" data-rig aria-hidden="true">
+  <span class="strap" data-strap><span>{strapText}</span></span>
+  <div class="hang" data-hang>
+    <span class="clip"></span>
+    <div class="card" data-idcard>
+      <div class="id-face">
+          <span class="id-slot"></span>
+          <div class="id-top">
+            <span>{profile.siteName}</span>
+            <span>{new Date().getFullYear()}</span>
+          </div>
+          <div class="id-photo-row">
+            <span class="id-ring">
+              <Image class="photo" src={photo} alt="" widths={[240, 480]} sizes="200px" loading="eager" fetchpriority="high" />
+            </span>
+            <span class="id-stamp">Your Friendly Neighborhood AI Guy</span>
+          </div>
+          <p class="id-first">{profile.firstName}</p>
+          <p class="id-last">{profile.lastName}</p>
+          <p class="id-role">{profile.role}</p>
+          <div class="id-chips">
+            <span class="id-blue">4× Microsoft certified</span>
+            <span class="id-orange">5× hackathon winner</span>
+          </div>
+          <div class="id-foot">
+            <span>{profile.city}</span>
+            <span class="id-barcode"></span>
+          </div>
+        </div>
+    </div>
+  </div>
+</div>
+<script is:inline>
+  // Hide the card until the physics takes over, so it doesn't flash at rest first.
+  (function () {
+    var rig = document.querySelector('[data-rig]');
+    if (!rig || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    rig.classList.add('pre');
+    setTimeout(function () { rig.classList.remove('pre'); }, 3000); // safety net
+  })();
+</script>
+
+<script>
+  // ---- Tuning (pixels and seconds) ----
+  const GRAVITY = 2600;    // how hard it falls
+  const STIFFNESS = 2600;  // how stretchy the strap is (higher = less stretch)
+  const CATCH_DAMP = 70;   // how firmly the strap catches it (higher = less bounce, no yo-yo)
+  const AIR = 1.4;         // air resistance on the swing (higher = settles sooner)
+  const BREEZE = 60;       // strength of the idle breeze that keeps it moving
+  const HOLD_MS = 350;     // how long it's "held" before being let go
+  const HELD_X = 0.22;     // where the hand holds it: sideways, as a share of the strap length
+  const HELD_Y = 0.12;     // ...and how high (small = held up close to the top)
+  const HELD_TILT = 14;    // how tilted it is in the hand, in degrees
+  const EXTRA = 120;       // strap length hidden above the top of the screen
+
+  const rig = document.querySelector<HTMLElement>('[data-rig]');
+  const hang = rig?.querySelector<HTMLElement>('[data-hang]');
+  const strap = rig?.querySelector<HTMLElement>('[data-strap]');
+  const card = rig?.querySelector<HTMLElement>('[data-idcard]');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const canDrag = window.matchMedia('(pointer: fine)').matches;
+
+  const landed = () => window.dispatchEvent(new CustomEvent('idcard:landed'));
+
+  if (rig && hang && strap && card && !reduceMotion) init(rig, hang, strap, card);
+  else { rig?.classList.remove('pre'); landed(); }
+
+  function init(rig: HTMLElement, hang: HTMLElement, strap: HTMLElement, card: HTMLElement) {
+    if (rig.dataset.init) return; // already running (e.g. dev hot reload)
+    rig.dataset.init = 'true';
+    let L = 0;
+    const measure = () => { L = rig.clientHeight - hang.offsetHeight + EXTRA; };
+    measure();
+    window.addEventListener('resize', measure);
+
+    // Start: held in a hand, up near the top with the strap slack, slightly tilted.
+    let x = L * HELD_X;
+    let y = EXTRA + L * HELD_Y - L * 0.35;
+    let vx = 0, vy = 0;
+    let th = (-HELD_TILT * Math.PI) / 180, w = 0, t = 0;
+    let held = true, hasLanded = false;
+    let drag: { ox: number; oy: number; tx: number; ty: number } | null = null;
+    setTimeout(() => { held = false; }, HOLD_MS);
+
+    const anchor = () => {
+      const r = rig.getBoundingClientRect();
+      return { ax: r.left + r.width / 2, ay: r.top - EXTRA };
+    };
+
+    function step(dt: number) {
+      if (held) return;
+      t += dt;
+      if (drag) {
+        const k = Math.min(1, dt * 30);
+        const nx = x + (drag.tx - x) * k;
+        const ny = y + (drag.ty - y) * k;
+        vx = (nx - x) / dt; vy = (ny - y) / dt;
+        x = nx; y = ny;
+      } else {
+        let ax = BREEZE * (Math.sin(t * 1.7) + 0.55 * Math.sin(t * 3.3 + 1.2));
+        let ay = GRAVITY;
+        const d = Math.hypot(x, y);
+        if (d > L) {
+          // the strap is tight: pull back along it, and absorb most of the impact
+          const nx = x / d, ny = y / d;
+          const along = vx * nx + vy * ny;
+          const pull = STIFFNESS * (d - L) + CATCH_DAMP * Math.max(along, along * 0.25);
+          ax -= pull * nx; ay -= pull * ny;
+          if (!hasLanded) { hasLanded = true; landed(); }
+        }
+        ax -= AIR * vx; ay -= AIR * vy;
+        vx += ax * dt; vy += ay * dt;
+        x += vx * dt; y += vy * dt;
+      }
+      // the card turns to follow the strap with a little lag, so it wobbles naturally
+      const d = Math.hypot(x, y);
+      const ropeAngle = Math.atan2(x, y);
+      const target = d > L * 0.97 || drag ? -ropeAngle : th * 0.98;
+      w += (150 * (target - th) - 8 * w) * dt;
+      th += w * dt;
+    }
+
+    function render() {
+      const len = Math.hypot(x, y);
+      const ropeAngle = Math.atan2(x, y);
+      strap.style.height = `${len + 6}px`;
+      strap.style.transform = `rotate(${-ropeAngle}rad)`;
+      hang.style.transform = `translate(${x}px, ${y}px) rotate(${th}rad)`;
+      card.style.setProperty('--ry', `${Math.max(-18, Math.min(18, vx * 0.012)).toFixed(2)}deg`);
+    }
+
+    let last = performance.now();
+    let running = false;
+    function frame(now: number) {
+      if (!running) return;
+      const dt = Math.min(0.034, (now - last) / 1000);
+      last = now;
+      for (let i = 0; i < 6; i++) step(dt / 6);
+      render();
+      requestAnimationFrame(frame);
+    }
+    const run = () => { if (!running) { running = true; last = performance.now(); requestAnimationFrame(frame); } };
+    const stop = () => { running = false; };
+
+    rig.classList.add('live');
+    render();
+    rig.classList.remove('pre');
+    new IntersectionObserver(([e]) => (e.isIntersecting ? run() : stop())).observe(rig);
+
+    if (canDrag) {
+      card.addEventListener('pointerdown', (e) => {
+        held = false;
+        const { ax, ay } = anchor();
+        drag = { ox: e.clientX - ax - x, oy: e.clientY - ay - y, tx: x, ty: y };
+        card.setPointerCapture(e.pointerId);
+        rig.classList.add('dragging');
+      });
+      card.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        const { ax, ay } = anchor();
+        let tx = e.clientX - ax - drag.ox;
+        let ty = e.clientY - ay - drag.oy;
+        const d = Math.hypot(tx, ty), max = L * 1.6;
+        if (d > max) { tx *= max / d; ty *= max / d; }
+        drag.tx = tx; drag.ty = ty;
+      });
+      const release = () => {
+        if (!drag) return;
+        drag = null;
+        const sp = Math.hypot(vx, vy), cap = 3200;
+        if (sp > cap) { vx *= cap / sp; vy *= cap / sp; }
+        rig.classList.remove('dragging');
+      };
+      card.addEventListener('pointerup', release);
+      card.addEventListener('pointercancel', release);
+    }
+  }
+</script>
+
+<style>
+  .rig { --rope: clamp(48px, 9vh, 110px); --extra: 120px; position: relative; width: var(--card-w, 300px); height: calc(var(--rope) + 26px + var(--card-w, 300px) * 1.5); }
+
+  .strap { position: absolute; left: 50%; top: calc(var(--extra) * -1); width: 38px; margin-left: -19px; height: calc(var(--rope) + var(--extra) + 6px); transform-origin: 50% 0; background: var(--blue); overflow: hidden; box-shadow: inset 3px 0 rgba(255,255,255,.16), inset -3px 0 rgba(0,0,0,.14); }
+  .strap span { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); writing-mode: vertical-rl; rotate: 180deg; white-space: nowrap; color: #fff; font: 600 11px/1 var(--sans); letter-spacing: 0.12em; }
+
+  .hang { position: absolute; left: 0; top: calc(var(--extra) * -1); width: 100%; display: flex; flex-direction: column; align-items: center; transform-origin: 50% 0; transform: translateY(calc(var(--rope) + var(--extra))); perspective: 1200px; }
+  .rig.live .hang, .rig.live .strap { will-change: transform; }
+  .rig.pre .hang, .rig.pre .strap { visibility: hidden; }
+
+  .clip { position: relative; z-index: 2; width: 56px; height: 30px; border-radius: 8px 8px 6px 6px; background: linear-gradient(#f2f4f8, #aab2c2); box-shadow: 0 3px 6px rgba(22,24,29,.25); }
+  .clip::after { content: ''; position: absolute; left: 50%; bottom: 7px; width: 24px; height: 6px; transform: translateX(-50%); border-radius: 3px; background: #7d8596; }
+
+  .card { position: relative; margin-top: -4px; width: 100%; aspect-ratio: 2 / 3; container-type: inline-size; background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 50px 90px -40px rgba(22, 24, 29, 0.6), 0 0 0 1px rgba(22, 24, 29, 0.06); transform: rotateY(var(--ry, 0deg)); touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+  @media (pointer: fine) { .rig.live .card { cursor: grab; touch-action: none; } .rig.dragging .card { cursor: grabbing; } }
+  .card::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.55) 48%, transparent 60%); background-size: 260% 100%; background-position: 130% 0; animation: shine 7s ease-in-out 2s infinite; mix-blend-mode: soft-light; }
+  @keyframes shine { 0%, 70% { background-position: 130% 0; } 100% { background-position: -40% 0; } }
+  .card :global(img) { pointer-events: none; }
+
+  .id-face { height: 100%; display: flex; flex-direction: column; padding: 5.5cqw 7cqw 0; }
+  .id-slot { align-self: center; width: 22cqw; height: 3.6cqw; border-radius: 2cqw; background: var(--mist); box-shadow: inset 0 1px 2px rgba(22,24,29,.15); }
+  .id-top { display: flex; justify-content: space-between; margin-top: 4.5cqw; font-size: 4cqw; font-weight: 600; color: var(--ink-2); }
+  .id-photo-row { display: flex; align-items: center; gap: 3cqw; margin-top: 5cqw; }
+  .id-ring { flex: none; display: block; width: 46cqw; aspect-ratio: 1; padding: 1.3cqw; border-radius: 50%; background: var(--blue); }
+  .id-ring :global(.photo) { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; border: 1.3cqw solid #fff; }
+  .id-stamp { flex: 1; min-width: 0; margin-right: 1cqw; transform: rotate(-7deg); border: 0.8cqw solid var(--orange); color: var(--orange-ink); border-radius: 3cqw; padding: 2.4cqw 2.2cqw; font-size: 3.7cqw; font-weight: 700; line-height: 1.2; text-align: center; text-wrap: balance; }
+  .id-first, .id-last { font-family: var(--serif); line-height: 0.92; }
+  .id-first { margin-top: 5cqw; font-size: 15cqw; color: var(--ink); }
+  .id-last { font-size: 13cqw; font-style: italic; color: var(--blue); }
+  .id-role { margin-top: 3cqw; font-size: 4.6cqw; font-weight: 600; line-height: 1.3; white-space: nowrap; }
+  .id-chips { display: flex; flex-wrap: nowrap; gap: 2cqw; margin-top: 3.5cqw; }
+  .id-chips span { font-size: 3.1cqw; font-weight: 700; padding: 1.4cqw 2.2cqw; border-radius: 99px; white-space: nowrap; line-height: 1.3; }
+  .id-blue { background: var(--blue); color: #fff; }
+  .id-orange { background: var(--orange); color: var(--ink); }
+  .id-foot { display: flex; align-items: center; justify-content: space-between; margin: auto -7cqw 0; padding: 4.5cqw 7cqw; background: var(--blue); color: #fff; font-size: 4.2cqw; font-weight: 600; }
+  .id-barcode { width: 26cqw; height: 7cqw; background: repeating-linear-gradient(90deg, #fff 0 1.1cqw, transparent 1.1cqw 1.9cqw, #fff 1.9cqw 2.4cqw, transparent 2.4cqw 3.4cqw, #fff 3.4cqw 4.6cqw, transparent 4.6cqw 5.4cqw); }
+
+
+  @media (prefers-reduced-motion: reduce) { .card::after { animation: none; } }
+</style>

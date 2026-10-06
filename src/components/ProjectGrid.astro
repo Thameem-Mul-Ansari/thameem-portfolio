@@ -1,0 +1,181 @@
+---
+// Project cards + the pop-up with the image carousel. Used on the home page and on /projects.
+// layout="feature": first card full width, then two per row (home page).
+// layout="uniform": equal cards, three per row on wide screens, with category filters (/projects).
+import { Image } from 'astro:assets';
+import ProjectDetail from './ProjectDetail.astro';
+import type { Project } from '../lib/projects';
+
+interface Props {
+  projects: Project[];
+  layout?: 'feature' | 'uniform';
+}
+const { projects, layout = 'feature' } = Astro.props;
+const n = projects.length;
+const isWide = (i: number) => layout === 'feature' && (i === 0 || (i === n - 1 && (n - 1) % 2 === 1));
+const categories = layout === 'uniform' ? [...new Set(projects.map((p) => p.data.category))] : [];
+---
+{categories.length > 1 && (
+  <div class="filters" role="group" aria-label="Filter projects by category" data-filters>
+    <button type="button" aria-pressed="true" data-filter="all">All <span>{n}</span></button>
+    {categories.map((c) => (
+      <button type="button" aria-pressed="false" data-filter={c}>
+        {c} <span>{projects.filter((p) => p.data.category === c).length}</span>
+      </button>
+    ))}
+  </div>
+)}
+
+<ul class:list={['grid', `layout-${layout}`]} data-grid>
+  {projects.map((p, i) => (
+    <li class:list={['card', `accent-${p.data.accent}`, { wide: isWide(i) }]} data-category={p.data.category}>
+      <a href={`/projects/${p.id}`} data-project={p.id} aria-haspopup="dialog">
+        <div class="thumb">
+          <Image
+            src={p.data.cover}
+            alt={p.data.coverAlt}
+            widths={[480, 800, 1200]}
+            sizes={isWide(i) ? '(min-width: 900px) 1100px, 100vw' : layout === 'uniform' ? '(min-width: 1100px) 380px, (min-width: 700px) 50vw, 100vw' : '(min-width: 900px) 560px, 100vw'}
+            loading={i < 2 ? 'eager' : 'lazy'}
+          />
+          {p.data.gallery.length > 1 && <span class="count">{p.data.gallery.length} screens</span>}
+        </div>
+        <div class="meta">
+          <p class="cat">{p.data.category}</p>
+          <h3>{p.data.title}</h3>
+          <p class="sum">{p.data.summary}</p>
+          {p.data.metrics[0] && (
+            <p class="metric"><strong>{p.data.metrics[0].value}</strong> {p.data.metrics[0].label}</p>
+          )}
+        </div>
+      </a>
+    </li>
+  ))}
+</ul>
+
+{projects.map((p) => (
+  <template id={`tpl-${p.id}`} data-title={p.data.title}>
+    <ProjectDetail project={p} showPageLink />
+  </template>
+))}
+
+<dialog class="pdialog" id="project-dialog" aria-labelledby="pdialog-title">
+  <div class="pdialog-scroll">
+    <div class="pdialog-bar">
+      <button class="icon-btn" type="button" data-close aria-label="Close project">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+    </div>
+    <div data-dialog-body></div>
+  </div>
+</dialog>
+
+<script>
+  import { initCarousels } from '../lib/carousel';
+
+  const dialog = document.getElementById('project-dialog') as HTMLDialogElement | null;
+  const body = dialog?.querySelector<HTMLElement>('[data-dialog-body]');
+  const scroller = dialog?.querySelector<HTMLElement>('.pdialog-scroll');
+  const baseTitle = document.title;
+  const baseUrl = location.pathname + location.search + location.hash;
+  let pushed = false;
+  let returnFocus: HTMLElement | null = null;
+
+  function open(slug: string, push = true) {
+    const tpl = document.getElementById(`tpl-${slug}`) as HTMLTemplateElement | null;
+    if (!dialog || !body || !tpl) return false;
+    body.replaceChildren(tpl.content.cloneNode(true));
+    body.querySelector('[data-title]')?.setAttribute('id', 'pdialog-title');
+    initCarousels(body);
+    if (!dialog.open) {
+      returnFocus = document.activeElement as HTMLElement | null;
+      dialog.showModal();
+    }
+    scroller?.scrollTo({ top: 0 });
+    document.documentElement.classList.add('dialog-open');
+    document.title = `${tpl.dataset.title} | Ansari Automates`;
+    if (push) {
+      history.pushState({ project: slug }, '', `/projects/${slug}`);
+      pushed = true;
+    }
+    return true;
+  }
+
+  dialog?.addEventListener('close', () => {
+    document.documentElement.classList.remove('dialog-open');
+    document.title = baseTitle;
+    body?.replaceChildren();
+    if (pushed) {
+      pushed = false;
+      if (history.state?.project) history.back();
+      else history.replaceState(null, '', baseUrl);
+    }
+    returnFocus?.focus();
+  });
+  dialog?.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+  dialog?.querySelector('[data-close]')?.addEventListener('click', () => dialog.close());
+
+  document.querySelectorAll<HTMLAnchorElement>('a[data-project]').forEach((a) => {
+    a.addEventListener('click', (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (open(a.dataset.project!)) e.preventDefault();
+    });
+  });
+
+  window.addEventListener('popstate', (e) => {
+    const slug = e.state?.project;
+    if (slug) { open(slug, false); pushed = true; }
+    else if (dialog?.open) { pushed = false; dialog.close(); }
+  });
+</script>
+
+<script>
+  // Category filters on /projects
+  const bar = document.querySelector<HTMLElement>('[data-filters]');
+  const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-grid] > li'));
+  bar?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-filter]');
+    if (!btn) return;
+    const value = btn.dataset.filter;
+    bar.querySelectorAll('[data-filter]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    cards.forEach((li) => { li.hidden = value !== 'all' && li.dataset.category !== value; });
+  });
+</script>
+
+<style>
+  .grid { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(1.25rem, 2.5vw, 2rem); }
+  .wide { grid-column: 1 / -1; }
+  @media (max-width: 760px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .card a { display: grid; gap: 1.1rem; color: inherit; text-decoration: none; height: 100%; }
+  .thumb { position: relative; border-radius: var(--radius-l); overflow: hidden; aspect-ratio: 16 / 10; padding: clamp(0.75rem, 2vw, 1.5rem); }
+  .accent-blue .thumb { background: var(--blue-tint); }
+  .accent-orange .thumb { background: var(--orange-tint); }
+  .wide .thumb { aspect-ratio: 21 / 9; }
+  @media (max-width: 760px) { .wide .thumb { aspect-ratio: 16 / 10; } }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-m); transition: transform .5s cubic-bezier(.2,.8,.2,1); box-shadow: 0 20px 40px -24px rgba(22,24,29,.45); }
+  .card a:hover .thumb img { transform: scale(1.025); }
+  .count { position: absolute; right: 1.25rem; bottom: 1.25rem; background: var(--ink); color: #fff; font-size: 0.8rem; font-weight: 600; padding: 0.35rem 0.75rem; border-radius: 999px; }
+  .meta { padding-inline: 0.25rem; }
+  .cat { color: var(--ink-2); font-size: var(--step--1); }
+  h3 { font-family: var(--serif); font-weight: 400; font-size: clamp(1.8rem, 2.6vw, 2.4rem); line-height: 1.05; margin-top: 0.3rem; }
+  .card a:hover h3 { color: var(--blue-ink); }
+  .sum { margin-top: 0.5rem; color: var(--ink-2); max-width: 60ch; }
+  .metric { margin-top: 0.75rem; font-size: 0.95rem; }
+  .metric strong { font-weight: 700; }
+  .accent-blue .metric strong { color: var(--blue-ink); }
+  .accent-orange .metric strong { color: var(--orange-ink); }
+
+  /* /projects: equal cards, three per row */
+  .layout-uniform { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .layout-uniform h3 { font-size: clamp(1.5rem, 2vw, 1.9rem); }
+  @media (max-width: 1100px) { .layout-uniform { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 700px) { .layout-uniform { grid-template-columns: minmax(0, 1fr); } }
+  .card[hidden] { display: none; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: clamp(1.5rem, 3vw, 2.25rem); }
+  .filters button { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 42px; padding: 0.4rem 1rem; border-radius: 999px; border: 1.5px solid var(--line); background: #fff; font-weight: 600; font-size: 0.95rem; cursor: pointer; }
+  .filters button span { font-weight: 500; color: var(--ink-2); font-size: 0.85rem; }
+  .filters button:hover { border-color: var(--ink); }
+  .filters button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .filters button[aria-pressed='true'] span { color: #c9ccd5; }
+</style>

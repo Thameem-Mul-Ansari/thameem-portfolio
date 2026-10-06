@@ -1,0 +1,37 @@
+---
+import { getCollection } from 'astro:content';
+import { Image } from 'astro:assets';
+const certs = (await getCollection('certifications')).sort((a, b) => a.data.order - b.data.order);
+---
+<section id="certifications" class="section" aria-labelledby="cert-title">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <h2 id="cert-title" class="section-title">Certifications</h2>
+        <p class="section-lede">Microsoft-certified across automation, AI and data engineering.</p>
+      </div>
+    </div>
+    <ul class="certs">
+      {certs.map((c) => (
+        <li>
+          <Image src={c.data.badge} alt={`${c.data.issuer} ${c.data.code} badge`} width={120} height={120} />
+          <div>
+            <p class="code">{c.data.issuer} {c.data.code}</p>
+            <h3>{c.data.name}</h3>
+            {c.data.issued && <p class="issued">Issued {c.data.issued}</p>}
+            {c.data.credentialUrl && <a href={c.data.credentialUrl} target="_blank" rel="noopener">Verify credential</a>}
+          </div>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+<style>
+  .certs { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+  li { display: flex; gap: 1.1rem; align-items: center; padding: 1.25rem; border-radius: var(--radius-m); border: 1.5px solid var(--line); }
+  img { width: 84px; height: 84px; object-fit: contain; flex: none; }
+  .code { font-weight: 700; color: var(--blue-ink); font-size: 0.95rem; }
+  h3 { font-size: 1.05rem; font-weight: 500; line-height: 1.35; margin-top: 0.15rem; }
+  .issued { color: var(--ink-2); font-size: var(--step--1); margin-top: 0.25rem; }
+  a { display: inline-block; margin-top: 0.4rem; font-size: var(--step--1); font-weight: 600; }
+</style>

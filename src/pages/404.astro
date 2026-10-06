@@ -1,0 +1,16 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Page not found" noindex>
+  <div class="container nf">
+    <p class="big">404</p>
+    <h1>This page doesn’t exist</h1>
+    <p>The link may be old, or the project may have moved.</p>
+    <a class="btn btn-blue" href="/">Go to the homepage</a>
+  </div>
+</BaseLayout>
+<style>
+  .nf { padding-block: clamp(4rem, 12vw, 9rem); display: grid; justify-items: start; gap: 1rem; }
+  .big { font-family: var(--serif); font-size: clamp(6rem, 18vw, 14rem); line-height: 0.8; color: var(--blue); }
+  h1 { font-family: var(--serif); font-weight: 400; font-size: var(--step-3); line-height: 1; }
+</style>

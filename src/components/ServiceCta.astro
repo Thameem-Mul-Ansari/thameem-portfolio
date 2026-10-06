@@ -1,0 +1,28 @@
+---
+import { processLine } from '../data/services';
+import { profile } from '../data/profile';
+
+const whatsapp = `https://wa.me/${profile.whatsapp.number}?text=${encodeURIComponent('Hi Thameem, I found Ansari Automates and would like to book a free call about my business.')}`;
+---
+<div class="cta">
+  <div class="text">
+    <h3>Not sure where to start?</h3>
+    <p>Tell me about your business and I'll suggest where AI and automation would save you the most time.</p>
+    <p class="steps">{processLine}</p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-white" href={whatsapp} target="_blank" rel="noopener">Book a free 20-min call</a>
+    <a class="link" href="/#contact">Or send a message</a>
+  </div>
+</div>
+
+<style>
+  .cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.5rem 3rem; padding: clamp(1.5rem, 3vw, 2.25rem) clamp(1.5rem, 3vw, 2.5rem); border-radius: var(--radius-l); background: var(--blue); color: #fff; }
+  .text { max-width: 60ch; }
+  h3 { font-family: var(--serif); font-weight: 400; font-size: clamp(1.8rem, 2.6vw, 2.3rem); line-height: 1.05; }
+  .text p { margin-top: 0.5rem; color: rgba(255, 255, 255, 0.88); line-height: 1.5; }
+  .text .steps { margin-top: 0.75rem; color: #fff; font-weight: 600; font-size: 0.95rem; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.25rem; }
+  .link { color: #fff; font-weight: 600; }
+  .link:hover { color: var(--orange-tint); }
+</style>

@@ -1,0 +1,303 @@
+{
+  "name": "Portfolio Contact Form",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "portfolio-contact",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://your-project-id.web.app,http://localhost:4321"
+        }
+      },
+      "id": "36f4cd2e-43ef-4c53-99c0-bde77045de6b",
+      "name": "Contact Form Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "d9256f7d-6e70-491e-b1e2-e4194a88d24f"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validates and cleans the contact form submission.\nconst raw = $input.first().json.body ?? {};\nconst body = typeof raw === 'string' ? (() => { try { return JSON.parse(raw); } catch { return {}; } })() : raw;\n\nconst clean = (v, max) => String(v ?? '').replace(/[\\u0000-\\u001F\\u007F]/g, ' ').trim().slice(0, max);\nconst name = clean(body.name, 100);\nconst email = clean(body.email, 150).toLowerCase();\nconst type = clean(body.type, 40) || 'Something else';\nconst message = String(body.message ?? '').trim().slice(0, 3000);\nconst elapsedMs = Number(body.elapsedMs ?? 0);\n\nlet status = 'ok';\nlet reason = '';\nif (clean(body.website, 200)) { status = 'spam'; reason = 'honeypot'; }\nelse if (elapsedMs > 0 && elapsedMs < 3000) { status = 'spam'; reason = 'too-fast'; }\nelse if (name.length < 2) { status = 'invalid'; reason = 'Please add your name.'; }\nelse if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(email)) { status = 'invalid'; reason = 'Please add a valid email.'; }\nelse if (message.length < 10) { status = 'invalid'; reason = 'Please write a longer message.'; }\n\nconst escape = (s) => s.replace(/[&<>\"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n\nreturn [{\n  json: {\n    valid: status === 'ok',\n    status,\n    reason,\n    name,\n    email,\n    type,\n    message,\n    messageHtml: escape(message).replace(/\\n/g, '<br>'),\n    nameHtml: escape(name),\n    page: clean(body.page, 300),\n    submittedAt: clean(body.submittedAt, 40) || new Date().toISOString(),\n  },\n}];"
+      },
+      "id": "e19c72c1-530e-4a8c-8f55-6d9afc3182b3",
+      "name": "Validate & Clean",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "1da4b161-826f-4088-9dce-830237947116",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5748809a-e074-49f7-91be-b9fdcd88e0c7",
+      "name": "Is Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "4563d394-a576-4af6-84dd-958a48b71481",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "ansariautomates@gmail.com",
+        "subject": "={{ `Portfolio: new ${$json.type} enquiry from ${$json.name}` }}",
+        "emailType": "html",
+        "message": "={{ `<div style=\"font-family:Arial,sans-serif;font-size:15px;color:#16181d\">\n<h2 style=\"margin:0 0 12px\">New ${$json.type} enquiry</h2>\n<p><b>Name:</b> ${$json.nameHtml}<br><b>Email:</b> <a href=\"mailto:${$json.email}\">${$json.email}</a><br><b>Type:</b> ${$json.type}<br><b>Sent:</b> ${$json.submittedAt}</p>\n<p style=\"padding:12px 16px;background:#f3f4f7;border-radius:8px\">${$json.messageHtml}</p>\n<p style=\"color:#4a4f5c;font-size:13px\">From ${$json.page}. Reply to this email to answer them directly.</p>\n</div>` }}",
+        "options": {
+          "appendAttribution": false,
+          "replyTo": "={{ $json.email }}"
+        }
+      },
+      "id": "2d8d6774-f851-44a8-81e1-98b19bd3fbe8",
+      "name": "Email Me",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        760,
+        200
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_ME",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_YOUR_TELEGRAM_CHAT_ID",
+        "text": "={{ `New ${$json.type} enquiry\nFrom: ${$json.name} <${$json.email}>\n\n${$json.message.slice(0, 900)}` }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "f970ef42-b90f-4326-858c-d0ba0c5a0256",
+      "name": "Telegram Ping",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        760,
+        360
+      ],
+      "onError": "continueRegularOutput",
+      "disabled": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_ME",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_GOOGLE_SHEET_URL",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "27cd6fdf-9cb9-4d83-b11d-d49d1f5ca6ee",
+      "name": "Log Lead to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        760,
+        520
+      ],
+      "onError": "continueRegularOutput",
+      "disabled": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_ME",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "Thanks for reaching out, I'll reply soon",
+        "emailType": "html",
+        "message": "={{ `<div style=\"font-family:Arial,sans-serif;font-size:15px;color:#16181d\">\n<p>Hi ${$json.nameHtml},</p>\n<p>Thanks for reaching out through my portfolio. I've got your message and I'll reply within one working day.</p>\n<p>Best,<br>Thameem Mul Ansari S<br>AI &amp; Automation Engineer</p>\n<p style=\"color:#4a4f5c;font-size:13px\">This confirmation was sent automatically by my n8n workflow.</p>\n</div>` }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "dda7dfb6-5873-497b-9afa-ab16a26b803d",
+      "name": "Auto-reply to Sender",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        760,
+        680
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_ME",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.status === 'spam' ? { ok: true } : { ok: false, error: $json.reason }) }}",
+        "options": {
+          "responseCode": "={{ $json.status === 'spam' ? 200 : 400 }}"
+        }
+      },
+      "id": "b72492f0-d1be-40ba-b4c5-1519f96c7f92",
+      "name": "Respond Rejected",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Portfolio contact form\n1. Connect your Gmail credential on **Email Me** and **Auto-reply to Sender**.\n2. Optional: enable **Telegram Ping** and **Log Lead to Sheet**, then connect their credentials. For the sheet, add a tab named `Leads` with headers matching the fields (name, email, type, message, page, submittedAt...).\n3. In **Contact Form Webhook**, set Allowed Origins to your live domain.\n4. Activate the workflow and copy the **Production URL** into `PUBLIC_CONTACT_WEBHOOK_URL`.",
+        "height": 300,
+        "width": 420
+      },
+      "id": "167a3e90-c0ce-4046-9cf8-dad5711b41c8",
+      "name": "Setup notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -40
+      ]
+    }
+  ],
+  "connections": {
+    "Contact Form Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate & Clean",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Clean": {
+      "main": [
+        [
+          {
+            "node": "Is Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Valid?": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email Me",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram Ping",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Lead to Sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Auto-reply to Sender",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "active": false,
+  "tags": []
+}
