@@ -40,6 +40,6 @@ jobs:
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ANSARI_AUTOMATES_2F488 }}
           projectId: ${{ vars.PUBLIC_FIREBASE_PROJECT_ID }}
           channelId: live
