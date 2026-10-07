@@ -152,6 +152,15 @@ This repository is the source of my portfolio, **[Ansari Automates](https://ansa
 - **SEO:** static pages, structured data, sitemap and social previews
 - **Deploys automatically** to Firebase Hosting through GitHub Actions on every push to `main`
 
+### Configure the deployed AI chat
+
+In GitHub, open **Settings → Secrets and variables → Actions** and add:
+
+- Repository secret `GROQ_API_KEY` with a dedicated, quota-limited Groq API key
+- Repository variable `PUBLIC_GROQ_MODEL` with the Groq model to use (optional; defaults to `llama-3.3-70b-versatile`)
+
+The workflows inject these during the Astro build. The key is included in the public browser bundle because the chat calls Groq directly, so use a dedicated key and expect visitors to be able to view it. Push to `main` (or run the deploy workflow) after setting the secret to rebuild and deploy the live site.
+
 ### Run it locally
 
 ```bash
