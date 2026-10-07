@@ -14,15 +14,15 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     env:
-      PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL }}
+      PUBLIC_SITE_URL: ${{ secrets.PUBLIC_SITE_URL }}
       PUBLIC_FIREBASE_API_KEY: ${{ vars.PUBLIC_FIREBASE_API_KEY }}
       PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.PUBLIC_FIREBASE_AUTH_DOMAIN }}
-      PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.PUBLIC_FIREBASE_PROJECT_ID }}
+      PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
       PUBLIC_FIREBASE_APP_ID: ${{ vars.PUBLIC_FIREBASE_APP_ID }}
       PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY }}
-      PUBLIC_GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-      PUBLIC_GROQ_MODEL: ${{ vars.PUBLIC_GROQ_MODEL }}
-      PUBLIC_CONTACT_WEBHOOK_URL: ${{ vars.PUBLIC_CONTACT_WEBHOOK_URL }}
+      PUBLIC_GROQ_API_KEY: ${{ secrets.PUBLIC_GROQ_API_KEY }}
+      PUBLIC_GROQ_MODEL: ${{ secrets.PUBLIC_GROQ_MODEL }}
+      PUBLIC_CONTACT_WEBHOOK_URL: ${{ secrets.PUBLIC_CONTACT_WEBHOOK_URL }}
       PUBLIC_WEB3FORMS_KEY: ${{ vars.PUBLIC_WEB3FORMS_KEY }}
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +33,16 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      - name: Verify AI chat configuration
+        env:
+          GROQ_API_KEY: ${{ secrets.PUBLIC_GROQ_API_KEY }}
+        run: |
+          if [ -z "$GROQ_API_KEY" ]; then
+            echo "::error::Missing GitHub Actions repository secret PUBLIC_GROQ_API_KEY. Add it in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
       - run: npm run build
 
       - name: Deploy preview channel
@@ -41,7 +51,7 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ANSARI_AUTOMATES_2F488 }}
-          projectId: ${{ vars.PUBLIC_FIREBASE_PROJECT_ID }}
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
           expires: 7d
 
       - name: Lighthouse audit of the preview

@@ -156,10 +156,10 @@ This repository is the source of my portfolio, **[Ansari Automates](https://ansa
 
 In GitHub, open **Settings → Secrets and variables → Actions** and add:
 
-- Repository secret `GROQ_API_KEY` with a dedicated, quota-limited Groq API key
-- Repository variable `PUBLIC_GROQ_MODEL` with the Groq model to use (optional; defaults to `llama-3.3-70b-versatile`)
+- Repository secret `PUBLIC_GROQ_API_KEY` with a dedicated, quota-limited Groq API key
+- Repository secret `PUBLIC_GROQ_MODEL` with the Groq model to use (optional; defaults to `llama-3.3-70b-versatile`)
 
-The workflows inject these during the Astro build. The key is included in the public browser bundle because the chat calls Groq directly, so use a dedicated key and expect visitors to be able to view it. Push to `main` (or run the deploy workflow) after setting the secret to rebuild and deploy the live site.
+Also configure repository secrets `PUBLIC_SITE_URL`, `PUBLIC_CONTACT_WEBHOOK_URL`, and `FIREBASE_PROJECT_ID` for the site URL, contact form, and Firebase deployment. The workflows inject these during the Astro build. The Groq key is included in the public browser bundle because the chat calls Groq directly, so use a dedicated key and expect visitors to be able to view it. Push to `main` (or run the deploy workflow) after setting the secrets to rebuild and deploy the live site.
 
 ### Run it locally
 
