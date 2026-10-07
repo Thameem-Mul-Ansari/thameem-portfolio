@@ -147,7 +147,7 @@ I own delivery end to end: architecture, Python and FastAPI backends, React and 
 
 This repository is the source of my portfolio, **[Ansari Automates](https://ansariautomates.web.app)**.
 
-- **Built with:** Astro, React, Groq (Ansari AI chat), n8n (contact form), hosted on Firebase
+- **Built with:** Astro, React, Groq (Ansari AI chat), n8n , hosted on Firebase
 - **Highlights:** a physics-driven hanging ID card, typewriter intro, project pop-ups with image carousels, and Ansari AI, an assistant that answers questions about my work
 - **SEO:** static pages, structured data, sitemap and social previews
 - **Deploys automatically** to Firebase Hosting through GitHub Actions on every push to `main`
