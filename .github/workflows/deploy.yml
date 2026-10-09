@@ -13,16 +13,13 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      PUBLIC_SITE_URL: ${{ secrets.PUBLIC_SITE_URL }}
-      PUBLIC_FIREBASE_API_KEY: ${{ vars.PUBLIC_FIREBASE_API_KEY }}
-      PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.PUBLIC_FIREBASE_AUTH_DOMAIN }}
-      PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-      PUBLIC_FIREBASE_APP_ID: ${{ vars.PUBLIC_FIREBASE_APP_ID }}
-      PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY }}
-      PUBLIC_GROQ_API_KEY: ${{ secrets.PUBLIC_GROQ_API_KEY }}
-      PUBLIC_GROQ_MODEL: ${{ secrets.PUBLIC_GROQ_MODEL }}
-      PUBLIC_CONTACT_WEBHOOK_URL: ${{ secrets.PUBLIC_CONTACT_WEBHOOK_URL }}
+      # Repository VARIABLES - Settings > Secrets and variables > Actions > Variables
+      PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL }}
+      PUBLIC_GROQ_MODEL: ${{ vars.PUBLIC_GROQ_MODEL }}
+      PUBLIC_CONTACT_WEBHOOK_URL: ${{ vars.PUBLIC_CONTACT_WEBHOOK_URL }}
       PUBLIC_WEB3FORMS_KEY: ${{ vars.PUBLIC_WEB3FORMS_KEY }}
+      # Repository SECRETS - same page, Secrets tab
+      PUBLIC_GROQ_API_KEY: ${{ secrets.PUBLIC_GROQ_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,14 +31,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify AI chat configuration
-        env:
-          GROQ_API_KEY: ${{ secrets.PUBLIC_GROQ_API_KEY }}
+      - name: Verify build configuration
         run: |
-          if [ -z "$GROQ_API_KEY" ]; then
-            echo "::error::Missing GitHub Actions repository secret PUBLIC_GROQ_API_KEY. Add it in Settings > Secrets and variables > Actions."
-            exit 1
+          fail=0
+          if [ -z "$PUBLIC_GROQ_API_KEY" ]; then
+            echo "::error::Missing repository SECRET PUBLIC_GROQ_API_KEY (Settings > Secrets and variables > Actions > Secrets tab)."
+            fail=1
           fi
+          if [ -z "$PUBLIC_SITE_URL" ]; then
+            echo "::error::Missing repository VARIABLE PUBLIC_SITE_URL (Variables tab). Canonical URLs and the sitemap need it."
+            fail=1
+          fi
+          if [ -z "$PUBLIC_CONTACT_WEBHOOK_URL" ]; then
+            echo "::warning::Missing repository VARIABLE PUBLIC_CONTACT_WEBHOOK_URL. The contact form will not submit."
+          fi
+          exit $fail
 
       - name: Build site
         run: npm run build
@@ -51,5 +55,5 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ANSARI_AUTOMATES_2F488 }}
-          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
           channelId: live
